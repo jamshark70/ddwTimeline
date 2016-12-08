@@ -16,7 +16,7 @@ TLSequenceIterator {
 		};
 		^super.newCopyArgs(array, sequencer, IdentitySet.new, autoSync ? defaultAutoSync)
 	}
-	
+
 	play { |time = 0, argClock, runningCmds|
 		var	temp, item, now, cmd, lastCmd, endStatus;
 		clock = argClock ?? { TempoClock.default };
@@ -90,7 +90,7 @@ if(trace) { "spawn".debug; };
 if(trace) {
 	[index, array.size].debug("exit while");
 	thisThread.clock.beats.debug("time at exit");
-	lastCmd.env.postcs;
+	if(lastCmd.isKindOf(Proto)) { lastCmd.env.postcs } { lastCmd.dump };
 	status.debug("status at exit");
 };
 				if(autoSyncAtEnd) { this.fullSync(warn: false) };
@@ -113,7 +113,7 @@ if(trace) { thisThread.clock.beats.debug("time after final sync; TLSeq routine e
 			"TLSequenceIterator is already active, cannot replay without stopping first".warn;
 		};
 	}
-	
+
 	stop { |parms|
 if(trace) {  parms.debug(">> TLSequenceIterator:stop"); };
 		parms ?? { parms = () };
@@ -129,6 +129,7 @@ if(trace) {  parms.debug("parms after update"); };
 		onStop.value(parms, this);
 		if(status != \idle) {
 			status = \idle;
+			NotificationCenter.notify(this, \done, [(activeCmds: activeCmds, endStatus: status)]);
 			this.changed(\done, activeCmds); //.debug("done upon stop");
 		};
 if(trace) {  debug("<< TLSequenceIterator:stop"); };
@@ -142,7 +143,7 @@ if(trace) {  debug("<< TLSequenceIterator:stop"); };
 			thisThread.clock.sched(0, { routine.stop; nil })
 		};
 	}
-	
+
 	isRunning { ^status != \idle }
 
 		// bookkeeping
@@ -156,7 +157,7 @@ if(trace) {  debug("<< TLSequenceIterator:stop"); };
 		this.addActive(cmd);
 		^cmd
 	}
-	
+
 	addActive { |cmd|
 //		var	updater;
 //"\n\n>> TLSequenceIterator:addActive".debug;
@@ -183,10 +184,10 @@ if(trace) {  debug("<< TLSequenceIterator:stop"); };
 //		})
 //"<< TLSequenceIterator:addActive".debug;
 	}
-	
+
 	findActive { |id, thisCmd|
 		var	result;
-		activeCmds.do { |item| 
+		activeCmds.do { |item|
 			if((item !== thisCmd) and: { item.id == id }) {
 				^item
 			} {
@@ -197,7 +198,7 @@ if(trace) {  debug("<< TLSequenceIterator:stop"); };
 		};
 		^nil
 	}
-	
+
 	cmdStopped { |cmd, parms, resumeTime|
 		var	oldCmds;
 		var temp;
@@ -207,7 +208,7 @@ if(trace) {
 	if(cmd.class == Proto) { cmd.listVars };
 };
 		activeCmds.remove(cmd);
-		
+
 			// I hope this works - the idea is that any non-syncable commands
 			// from a spawned iterator should be registered in the parent,
 			// so they can be passed up the chain if needed until they finally stop for real
@@ -236,7 +237,7 @@ if(trace) { "scheduling resume".debug; };
 		};
 if(trace) { status.debug("<< cmdStopped"); };
 	}
-	
+
 	fullSync { |warn = true|
 if(trace) { "setting fullSync status".debug; };
 		if(status == \running and: { activeCmds.any(_.shouldSync) }) {
@@ -246,7 +247,7 @@ if(trace) { "setting fullSync status".debug; };
 			if(warn) { "TLSequenceIterator: fullSync ignored, not running or no active commands.".warn };
 		}
 	}
-	
+
 	cmdSync { |lastCmd|
 		var	updater;
 if(trace) {
@@ -284,7 +285,7 @@ if(trace) { "cmdSync updater".debug; };
 				.format(lastCmd).warn;
 		}
 	}
-	
+
 	prUnhang {
 		status = \running;
 if(trace) {  "\n\n\nprUnhang: unhanging".debug; };
@@ -302,7 +303,7 @@ if(trace) {  "\n\n\nprUnhang: unhanging".debug; };
 	addNotifications { |cmds|
 		cmds.do({ |cmd| this.addActive(cmd) });
 	}
-	
+
 	removeNotifications { |cmds|
 		var	dict, myid = this.hash.asString;
 		cmds.do({ |cmd|
