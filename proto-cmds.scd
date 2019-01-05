@@ -46,7 +46,7 @@ Proto({
 	};
 	~schedDone = { |parms|
 		if(~doneSignal.isNil) {
-			thisThread.clock.sched((~dur.value(parms) ? 0), e { ~stop.value });
+			thisThread.clock.sched((~dur.value(parms) ? 0), inEnvir { ~stop.value });
 		};
 	};
 	~stop = { |parms|
@@ -65,7 +65,7 @@ Proto({
 // currentEnvironment.listVars;
 
 			if((notifyTime = parms.tryPerform(\at, \notifyTime)).notNil) {
-				thisThread.clock.schedAbs(notifyTime, e {
+				thisThread.clock.schedAbs(notifyTime, inEnvir {
 					NotificationCenter.notify(currentEnvironment, \done, [parms]);
 				});
 			} {
@@ -136,7 +136,7 @@ PR(\abstractTLCommand).clone({
 		if(~newDef) {
 			msg = [\d_recv, ~synthdef.asBytes, msg];
 		};
-		thisThread.clock.schedAbs(~schedTime, e {
+		thisThread.clock.schedAbs(~schedTime, inEnvir {
 			if(~latency == 0) {
 				~server.sendBundle(nil, msg)
 			} {
@@ -168,7 +168,7 @@ PR(\abstractTLCommand).clone({
 	~schedDone = { |parms|
 		if(~dur.notNil) {
 //"synthCmd scheduling release".debug;
-			thisThread.clock.schedAbs(~schedTime + ~dur, e { ~stop.(parms) });
+			thisThread.clock.schedAbs(~schedTime + ~dur, inEnvir { ~stop.(parms) });
 		};	// else -- node had better end on its own and trigger ~update
 	};
 	~done = { |parms|
@@ -363,7 +363,7 @@ PR(\abstractTLCommand).clone({
 			~pdefs.do({ |pdef| pdef.player.addDependant(currentEnvironment) });
 			if(~dur.isNumber and: { ~dur.isStrictlyPositive }) {
 				stopTime = thisThread.clock.beats + ~dur;
-				thisThread.clock.sched(~dur - 0.001, e {
+				thisThread.clock.sched(~dur - 0.001, inEnvir {
 					~stop.value((notifyTime: stopTime));
 				});
 			};
@@ -431,7 +431,7 @@ PR(\abstractTLCommand).clone({
 						// name.debug("bpcmd - playing");
 						// [thisThread.clock.beats, thisThread.clock.baseBarBeat, goTime].debug("now, basebar, go time");
 					// ~quant.dump;
-					/*thisThread*/ BP(name).clock.schedAbs(goTime, e {
+					/*thisThread*/ BP(name).clock.schedAbs(goTime, inEnvir {
 						// if not running, cmd was stopped before BP fired
 						// so skip the .play
 						if(~isRunning) {
@@ -464,7 +464,7 @@ PR(\abstractTLCommand).clone({
 			~bps.do({ |bp| bp.addDependant(currentEnvironment) });
 			if(~dur.isNumber and: { ~dur.isStrictlyPositive }) {
 				stopTime = thisThread.clock.beats + ~dur;
-				thisThread.clock.sched(~dur - 0.001, e {
+				thisThread.clock.sched(~dur - 0.001, inEnvir {
 					~bps.copy.do({ |bp| bp.stopNow(notifyTime: stopTime); });
 				});
 			};
@@ -663,7 +663,7 @@ Proto({
 	~schedDone = {
 		var	now = thisThread.clock.beats;
 		if(~dur.notNil) {
-			~clock.sched(~dur - 0.001, e { ~stop.(now + ~dur) });
+			~clock.sched(~dur - 0.001, inEnvir { ~stop.(now + ~dur) });
 		}	// else, there should be a user input trigger to move to the next section
 	};
 	~stop = { |notifyTime, manualStop = true|
@@ -679,7 +679,7 @@ Proto({
 			if(manualStop) { ~savedCmds.do(_.stop(stopParms)) };
 			~done.(manualStop);
 			~clearDoneSignal.();
-			~clock.schedAbs((notifyTime ?? { ~clock.beats }), e {
+			~clock.schedAbs((notifyTime ?? { ~clock.beats }), inEnvir {
 //~clock.beats.debug("sending done notification at");
 //~savedCmds.debug("with these saved commands");
 				currentEnvironment.changed(\done, ~savedCmds);
@@ -931,7 +931,7 @@ Proto({
 			~loadResources.(~currentSection+1);
 			~sectionRoutine.stop;
 			~sectionRoutine = nil;
-			~clock.value.sched(5.0, e {
+			~clock.value.sched(5.0, inEnvir {
 				// if I'm playing, then the recorder doesn't belong to me anymore
 				if(~isRunning.().not) {
 					try { topEnvironment[\master].stopRecord };
