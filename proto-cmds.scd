@@ -19,14 +19,14 @@ Proto({
 	// ~setDoneSignal (optional)
 	// ~clearDoneSignal (optional)
 	// ~free (optional)
-	
+
 	~isRunning = false;
-	
+
 		// parameters that one might want to override must be included in parentKeys below
 	~isTLCommand = true;
 		// if true, this command will be included in \sync or \cmdSync instructions
 	~shouldSync = true;
-	
+
 	~play = { |parms|
 //thisThread.clock.beats.debug(">> %: play".format(~collIndex));
 		if(~isRunning.not) {
@@ -243,12 +243,12 @@ PR(\synthCmd).clone {
 	~privateNodeEndAction = {
 		// make sure client knows the real final value from the synth
 		var	mctl, mixer, name, mySynth;
-		tryNoTrace {
+		try {
 			mixer = ~mixer;
 			name = ~controlName;
 			mctl = ~mixer.controls[~controlName];
 			mySynth = ~node;
-			mctl.bus.get({ |value| tryNoTrace {
+			mctl.bus.get({ |value| try {
 				// this test: if a new autoSynth is running (not mine!),
 				// then do NOT set the value because that will stop the new synth
 				if(mctl.autoSynth.isNil or: { mctl.autoSynth === mySynth }) {
@@ -286,8 +286,8 @@ PR(\mixerAutoSynthCmd).clone {
 	~privateNodeEndAction = {
 		// make sure client knows the real final value from the synth
 		var	gc = ~gc, mySynth = ~node;
-		tryNoTrace { gc.bus.get({ |value|
-			tryNoTrace {
+		try { gc.bus.get({ |value|
+			try {
 				if(gc.autoSynth.isNil or: { gc.autoSynth === mySynth }) {
 					gc.value = value
 				};
@@ -399,7 +399,7 @@ PR(\abstractTLCommand).clone({
 				~stop.value;
 			};
 		};
-	};	
+	};
 }) => PR(\pdefCmd);
 
 
@@ -428,8 +428,8 @@ PR(\abstractTLCommand).clone({
 				~prepareBP.(BP(name));
 				~goTime = goTime = BP(name).eventSchedTime(~quant);
 				if(goTime.notNil) {
-					// name.debug("bpcmd - playing");
-					// [thisThread.clock.beats, thisThread.clock.baseBarBeat, goTime].debug("now, basebar, go time");
+						// name.debug("bpcmd - playing");
+						// [thisThread.clock.beats, thisThread.clock.baseBarBeat, goTime].debug("now, basebar, go time");
 					// ~quant.dump;
 					/*thisThread*/ BP(name).clock.schedAbs(goTime, e {
 						// if not running, cmd was stopped before BP fired
@@ -497,7 +497,7 @@ PR(\abstractTLCommand).clone({
 				~stop.value;
 			};
 		};
-	};	
+	};
 }, parentKeys: #[quant]) => PR(\bpCmd);
 
 // this command triggers one event in the registered bp's
@@ -540,7 +540,7 @@ PR(\abstractTLCommand).clone({
 			{ \oneEventEmpty } { ~stop.value }
 				// somebody else started playing the process - this guy is dead now
 			{ \play } { ~stop.value };
-	};	
+	};
 }, #[shouldSync]) => PR(\bp1eventCmd);
 
 PR(\abstractTLCommand).clone({
@@ -634,7 +634,7 @@ Proto({
 			~isLoaded = true;
 		};
 	};
-	
+
 	~prUnload = {
 		if(~isLoaded) {
 			~unloadProcesses.();
@@ -694,9 +694,9 @@ Proto({
 	};
 	~done = {
 	};
-	
+
 	~isRunning = { ~status != \idle };
-	
+
 //	~saveStates = {
 //		var	bps;
 //		bps = ~bps ?? { BP.keys };
@@ -712,7 +712,7 @@ Proto({
 //			})
 //		};
 //	};
-//	
+//
 //	~initStates = {
 //		if(~states.isNil) {
 //			~saveStates.()
@@ -744,7 +744,7 @@ Proto({
 			}
 		})
 	};
-	
+
 	~update = { |obj, what, args|
 // [obj, what, args].debug("section % received update".format(~name));
 		if(obj === ~currentIterator) {
@@ -763,7 +763,7 @@ Proto({
 			currentEnvironment.changed(what, args)
 		};
 	};
-	
+
 	~playItem = { |item|
 		var	seq = item[\sequence], dur = item[\dur],
 			iterator, /*updater, */quant;
@@ -870,9 +870,9 @@ Proto({
 		~recordingOn = bool;
 		currentEnvironment.changed(\recording, bool);
 	};
-	
+
 	~currentSection = 0;
-	
+
 	~countOffBeats = 4;
 //	~clock = TempoClock.default;
 		// sections could run on different clocks
@@ -880,19 +880,19 @@ Proto({
 	~clock = { ~sections[~currentSection].tryPerform(\clock) ?? { TempoClock.default } };
 	~quant = Quant(1);	// start (to count off) on next whole bar
 	~sectionLeadTime = 0.9;	// how many beats before barline to kick off the section
-	
+
 	~autoReset = true;	// automatically reset all BPs?
 	~doNotReset = nil;	// collection of bp names NOT to reset
-	
+
 //	~condition = Condition.new;
-	
+
 	~isRunning = { ~status != \idle };
-	
+
 	~recvPlayButton = { |section|
 		if(~isRunning.()) { ~stop.() }
 			{ ~currentSection = section ?? { ~currentSection }; ~play.() };
 	};
-	
+
 	~play = {
 //">> sectionSequencer:play".debug;
 		if(~autoReset) {
@@ -905,7 +905,7 @@ Proto({
 		currentEnvironment.changed(\play);
 //"<< sectionSequencer:play".debug;
 	};
-	
+
 	~stop = { |lastSection = false|
 //lastSection.debug(">> sectionSequencer:stop");
 		if(~status == \countingOff) {
@@ -941,7 +941,7 @@ Proto({
 		};
 //"<< sectionSequencer:stop".debug;
 	};
-	
+
 	~startLoadingAt = 0;
 	~gotoSection = { |section|
 		var	toStop = ~sections[~currentSection];
@@ -970,7 +970,7 @@ Proto({
 		});
 //debug("<< loadResources");
 	};
-	
+
 	~countOffAndGo = {
 		var	clock = ~clock.value, master = topEnvironment[\master],
 			goTime = ~quant.nextTimeOnGrid(clock) + ~countOffBeats - ~sectionLeadTime,
@@ -1026,7 +1026,7 @@ Proto({
 			currentEnvironment.changed(\countoff, nil);
 		}));
 	};
-	
+
 	~doReset = {
 		(BP.keys - ~doNotReset.as(IdentitySet)).do({ |name|
 			if(BP(name).v.tryPerform(\at, \alwaysReset) != true) {
@@ -1037,7 +1037,7 @@ Proto({
 			};
 		});
 	};
-	
+
 	~gotoSection = { |section|
 		if(~isRunning.()) {
 			MethodError("Cannot change section while playing", currentEnvironment).throw;
@@ -1047,17 +1047,17 @@ Proto({
 		};
 	};
 	~currentSection_ = { |section| ~gotoSection.(section) };
-	
+
 	~countOffBeats_ = { |beats|
 		~countOffBeats = beats;
 		currentEnvironment.changed(\countOffBeats, beats);
 	};
-	
+
 	~autoReset_ = { |autoReset|
 		~autoReset = autoReset;
 		currentEnvironment.changed(\autoReset, autoReset);
 	};
-	
+
 	~update = { |obj, what, args|
 //[obj, what, args].debug("section sequencer got update");
 		var	section;
